@@ -1,4 +1,4 @@
-# Copyright (C) DATADVANCE, 2010-2021
+# Copyright (C) DATADVANCE, 2010-2023
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -25,8 +25,11 @@ import datetime
 import logging
 
 import django.core.serializers
+from django.forms.models import model_to_dict
+from django.core.serializers.json import DjangoJSONEncoder
 import django.db
 import msgpack
+import json
 
 # Module logger.
 LOG = logging.getLogger(__name__)
@@ -65,9 +68,14 @@ class Serializer:
 
             """
             if isinstance(obj, django.db.models.Model):
+                data = django.core.serializers.serialize("json", [obj])
+                data = json.loads(data)[0]
+                data['fields'].update(model_to_dict(obj))
+                data = json.dumps([data], cls=DjangoJSONEncoder)
+                
                 return {
                     "__djangomodel__": True,
-                    "as_str": django.core.serializers.serialize("json", [obj]),
+                    "as_str": data,
                 }
             if isinstance(obj, datetime.datetime):
                 return {"__datetime__": True, "as_str": obj.isoformat()}
