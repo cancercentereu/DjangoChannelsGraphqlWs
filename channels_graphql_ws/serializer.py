@@ -71,8 +71,16 @@ class Serializer:
                 data = django.core.serializers.serialize("json", [obj])
                 data = json.loads(data)[0]
                 data['fields'].update(model_to_dict(obj))
-                data = json.dumps([data], cls=DjangoJSONEncoder)
+
+                for k, v in data['fields'].items():
+                    if isinstance(v, django.db.models.Model):
+                        data['fields'][k] = v.pk
+                    elif isinstance(v, list):
+                        for index in range(len(v)):
+                            if isinstance(data['fields'][k][index], django.db.models.Model):
+                                data['fields'][k][index] = data['fields'][k][index].pk
                 
+                data = json.dumps([data], cls=DjangoJSONEncoder)
                 return {
                     "__djangomodel__": True,
                     "as_str": data,
